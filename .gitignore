@@ -1,0 +1,46 @@
+# Dependencies & Package Managers
+node_modules/
+.pnpm-store/
+package-lock.json
+yarn.lock
+
+# Build Outputs & Bundles
+dist/
+build/
+out/
+target/
+
+# Python Virtual Environments & Caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Executables & Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.bin
+
+# Local Environment & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE & Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Models & Binary Weights
+models/*
+!models/.gitkeep

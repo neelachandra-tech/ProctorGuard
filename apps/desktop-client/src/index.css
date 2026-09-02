@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #0a0d14;
+    color: #f1f5f9;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0d121d;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Glassmorphism Cards */
+.glass-panel {
+  background: rgba(18, 24, 36, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-glow {
+  background: rgba(18, 24, 36, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 242, 254, 0.2);
+  box-shadow: 0 0 25px rgba(0, 242, 254, 0.08);
+}
+
+/* Cyber Pulse Animation */
+@keyframes cyber-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.03);
+  }
+}
+
+.animate-cyber-pulse {
+  animation: cyber-pulse 2s infinite ease-in-out;
+}

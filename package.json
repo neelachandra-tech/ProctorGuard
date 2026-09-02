@@ -1,0 +1,22 @@
+{
+  "name": "proctor-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Biometric-Secured Remote Proctoring System with Multi-Channel Cheating Detection",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/desktop-client",
+    "dev:desktop": "npm run dev --workspace=apps/desktop-client",
+    "dev:examiner": "npm run dev --workspace=apps/examiner-portal",
+    "build": "npm run build --workspaces",
+    "build:desktop": "npm run build --workspace=apps/desktop-client",
+    "build:examiner": "npm run build --workspace=apps/examiner-portal",
+    "setup:models": "python scripts/download_models.py"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}

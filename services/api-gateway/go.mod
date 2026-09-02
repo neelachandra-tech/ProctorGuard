@@ -1,0 +1,3 @@
+module proctorguard/api-gateway
+
+go 1.22

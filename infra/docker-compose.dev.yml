@@ -1,0 +1,97 @@
+services:
+  # 1. Apache Kafka with KRaft (No Zookeeper required)
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: proctorguard-kafka
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=controller,broker
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka Topic Initialization Job
+  kafka-init-topics:
+    image: apache/kafka:3.7.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: >
+      "
+        echo 'Creating ProctorGuard Kafka Topics...'
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic exam.frames --partitions 6 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic exam.audio --partitions 6 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic exam.keystrokes --partitions 6 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic exam.submissions --partitions 6 --replication-factor 1
+        echo 'Topics created successfully.'
+      "
+
+  # 2. Redis 7.x Cluster / Cache for Active Anomaly Fusion Engine
+  redis:
+    image: redis:7.2-alpine
+    container_name: proctorguard-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel notice
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # 3. PostgreSQL 16 with TimescaleDB extension for Immutable Audit Logs
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: proctorguard-timescale
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=proctorguard_audit
+      - POSTGRES_USER=proctor_admin
+      - POSTGRES_PASSWORD=proctor_secure_pass
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+
+  # 4. MinIO S3-Compatible Object Storage for Evidence Clip Bundles
+  minio:
+    image: minio/minio:RELEASE.2024-03-03T17-50-39Z
+    container_name: proctorguard-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minio_admin
+      - MINIO_ROOT_PASSWORD=minio_secure_pass
+    command: server /data --console-address ":9001"
+
+  # 5. LiveKit WebRTC SFU for Low-Latency Proctoring Video/Audio Streams
+  livekit:
+    image: livekit/livekit-server:v1.6
+    container_name: proctorguard-livekit
+    ports:
+      - "7880:7880"   # HTTP API / WebSocket
+      - "7881:7881"   # TCP fallback
+      - "7882:7882/udp" # UDP turn
+      - "50000-50100:50000-50100/udp" # WebRTC ICE ports
+    environment:
+      - 'LIVEKIT_KEYS=API_KEY_PROCTORGUARD: SECRET_PROCTORGUARD_KEY_2026'
+    command: '--keys "API_KEY_PROCTORGUARD: SECRET_PROCTORGUARD_KEY_2026" --bind 0.0.0.0'
+
+volumes:
+  timescale_data:
