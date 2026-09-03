@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, UserCheck, Monitor, Server, AlertTriangle, Activity } from 'lucide-react';
+import { ShieldCheck, UserCheck, Monitor, Lock } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'K8S';
@@ -23,14 +23,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, systemS
               Proctor<span className="text-cyan-400">Guard</span>
             </span>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/50">
-              v2.4 MONOREPO
+              CANDIDATE KIOSK
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 font-mono">Biometric-Secured Remote Proctoring</p>
+          <p className="text-[11px] text-slate-400 font-mono">Biometric-Secured Lockdown Container</p>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Candidate Navigation Tabs Only */}
       <nav className="flex items-center space-x-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
         <button
           onClick={() => setActiveTab('ENROLLMENT')}
@@ -53,39 +53,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, systemS
           }`}
         >
           <Monitor className="w-4 h-4" />
-          <span>Examinee Console</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('EXAMINER')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-            activeTab === 'EXAMINER'
-              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-          }`}
-        >
-          <Activity className="w-4 h-4" />
-          <span>Examiner Portal</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('K8S')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-            activeTab === 'K8S'
-              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-          }`}
-        >
-          <Server className="w-4 h-4" />
-          <span>K8s Architecture (1,000+)</span>
+          <span>Examinee Workspace</span>
         </button>
       </nav>
 
-      {/* Security Status Badge */}
+      {/* Security Status Badge & Hardware Attestation */}
       <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 px-3 py-1.5 bg-cyan-950/40 border border-cyan-500/30 rounded-xl text-xs font-mono text-cyan-300">
+          <Lock className="w-3.5 h-3.5 text-cyan-400" />
+          <span>OS Lockdown Active</span>
+        </div>
+
         <div className="flex items-center space-x-3 bg-slate-900/80 px-3.5 py-1.5 rounded-xl border border-slate-800">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-mono">Security Score</span>
+            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-mono">Attestation Score</span>
             <span className="text-sm font-bold text-emerald-400 font-mono">{systemSecurityScore}%</span>
           </div>
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />

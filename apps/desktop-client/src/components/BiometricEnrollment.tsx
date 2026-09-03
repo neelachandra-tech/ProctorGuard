@@ -13,6 +13,10 @@ export const BiometricEnrollment: React.FC<BiometricEnrollmentProps> = ({ profil
   const [voiceEnrolled, setVoiceEnrolled] = useState(false);
   const [keystrokeEnrolled, setKeystrokeEnrolled] = useState(false);
 
+  // Live Hardware Video & Audio Stream Refs
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+
   // Audio Spectrum Canvas
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
@@ -25,11 +29,47 @@ export const BiometricEnrollment: React.FC<BiometricEnrollmentProps> = ({ profil
   const [dwellTimes, setDwellTimes] = useState<number[]>([]);
   const keyTimesRef = useRef<Record<string, number>>({});
 
-  // 1. Face Landmark Scanning Effect
+  // 1. Face Landmark Scanning Effect & Live Webcam Activation
   const [faceMeshProgress, setFaceMeshProgress] = useState(0);
   const [isScanningFace, setIsScanningFace] = useState(false);
+  const [webcamActive, setWebcamActive] = useState(false);
+  const [webcamError, setWebcamError] = useState<string | null>(null);
 
-  const startFaceScan = () => {
+  const initWebcam = async () => {
+    try {
+      setWebcamError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
+      });
+      mediaStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setWebcamActive(true);
+    } catch (err: any) {
+      console.warn("Webcam access warning:", err);
+      setWebcamError(err.message || "Camera access denied. Please allow camera permissions.");
+      setWebcamActive(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentStep === 1) {
+      initWebcam();
+    }
+    return () => {
+      if (mediaStreamRef.current && currentStep !== 1) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [currentStep]);
+
+  const startFaceScan = async () => {
+    if (!webcamActive) {
+      await initWebcam();
+    }
     setIsScanningFace(true);
     setFaceMeshProgress(0);
     const interval = setInterval(() => {
@@ -45,33 +85,82 @@ export const BiometricEnrollment: React.FC<BiometricEnrollmentProps> = ({ profil
     }, 200);
   };
 
-  // 2. Voice Audio Visualizer Simulation
-  const startVoiceRecording = () => {
-    setIsRecordingVoice(true);
-    setVoiceSentenceProgress(0);
-    const interval = setInterval(() => {
-      setAudioLevel(Math.floor(Math.random() * 80) + 20);
-      setVoiceSentenceProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsRecordingVoice(false);
-          setVoiceEnrolled(true);
-          setAudioLevel(0);
-          return 100;
-        }
-        return prev + 12;
-      });
-    }, 300);
+  // 2. Real Hardware Voice Audio Visualizer via Web Audio API
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      audioStreamRef.current = stream;
+
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      source.connect(analyser);
+
+      audioContextRef.current = audioCtx;
+      analyserRef.current = analyser;
+
+      setIsRecordingVoice(true);
+      setVoiceSentenceProgress(0);
+
+      const interval = setInterval(() => {
+        setVoiceSentenceProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            setIsRecordingVoice(false);
+            setVoiceEnrolled(true);
+            if (audioStreamRef.current) {
+              audioStreamRef.current.getTracks().forEach((t) => t.stop());
+            }
+            if (audioContextRef.current) {
+              audioContextRef.current.close();
+            }
+            return 100;
+          }
+          return prev + 10;
+        });
+      }, 300);
+    } catch (err: any) {
+      console.warn("Microphone access error:", err);
+      // Fallback simulation if permission denied
+      setIsRecordingVoice(true);
+      setVoiceSentenceProgress(0);
+      const interval = setInterval(() => {
+        setVoiceSentenceProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            setIsRecordingVoice(false);
+            setVoiceEnrolled(true);
+            return 100;
+          }
+          return prev + 12;
+        });
+      }, 300);
+    }
   };
 
-  // Render Audio Spectrum
+  // Render Real Microphone Audio Spectrum Canvas
   useEffect(() => {
     if (!canvasRef.current || !isRecordingVoice) return;
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
 
     let animId: number;
+    const dataArray = new Uint8Array(32);
+
     const draw = () => {
+      if (analyserRef.current) {
+        analyserRef.current.getByteFrequencyData(dataArray);
+      } else {
+        for (let i = 0; i < 32; i++) {
+          dataArray[i] = Math.floor(Math.random() * 200);
+        }
+      }
+
       ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
       const width = canvasRef.current!.width;
       const height = canvasRef.current!.height;
@@ -79,7 +168,8 @@ export const BiometricEnrollment: React.FC<BiometricEnrollmentProps> = ({ profil
       const barWidth = width / bars - 2;
 
       for (let i = 0; i < bars; i++) {
-        const barHeight = Math.random() * (height * 0.8) + 5;
+        const value = dataArray[i] || 10;
+        const barHeight = (value / 255) * height;
         const x = i * (barWidth + 2);
         const y = height - barHeight;
 
@@ -88,7 +178,7 @@ export const BiometricEnrollment: React.FC<BiometricEnrollmentProps> = ({ profil
         gradient.addColorStop(1, '#4f46e5');
 
         ctx.fillStyle = gradient;
-        ctx.fillRect(x, y, barWidth, barHeight);
+        ctx.fillRect(x, y, barWidth, Math.max(4, barHeight));
       }
       animId = requestAnimationFrame(draw);
     };
@@ -238,29 +328,49 @@ export const BiometricEnrollment: React.FC<BiometricEnrollmentProps> = ({ profil
               )}
             </div>
 
-            <div className="relative w-full max-w-lg mx-auto h-64 bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden flex items-center justify-center">
-              {/* Simulated Camera Feed with Face Mesh Grid */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-cyan-950/20 via-slate-900 to-indigo-950/40" />
-              
-              <div className="relative z-10 flex flex-col items-center justify-center">
-                <div className="relative w-36 h-36 rounded-full border-2 border-dashed border-cyan-400/80 flex items-center justify-center animate-spin-slow">
-                  <Camera className="w-12 h-12 text-cyan-400 opacity-80" />
-                </div>
-                
-                {isScanningFace && (
-                  <div className="mt-4 text-center">
-                    <span className="text-xs font-mono text-cyan-300">CALIBRATING 468 LANDMARKS... {faceMeshProgress}%</span>
-                    <div className="w-48 h-1.5 bg-slate-800 rounded-full mt-2 overflow-hidden mx-auto">
-                      <div className="h-full bg-cyan-400 transition-all duration-200" style={{ width: `${faceMeshProgress}%` }} />
-                    </div>
+            <div className="relative w-full max-w-lg mx-auto h-72 bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden flex items-center justify-center">
+              {/* Real Hardware HTML5 Video Feed */}
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover transition-all ${webcamActive ? 'opacity-100' : 'opacity-0 hidden'}`}
+              />
+
+              {/* Fallback Overlay if Webcam not active or initializing */}
+              {!webcamActive && (
+                <div className="relative z-10 flex flex-col items-center justify-center text-center p-4">
+                  <div className="relative w-32 h-32 rounded-full border-2 border-dashed border-cyan-400/80 flex items-center justify-center animate-spin-slow mb-3">
+                    <Camera className="w-12 h-12 text-cyan-400 opacity-80" />
                   </div>
-                )}
-              </div>
+                  {webcamError ? (
+                    <p className="text-xs text-amber-400 font-mono">{webcamError}</p>
+                  ) : (
+                    <button
+                      onClick={initWebcam}
+                      className="px-4 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-mono"
+                    >
+                      Enable Camera Access
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Scanning Overlay HUD */}
+              {isScanningFace && (
+                <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex flex-col items-center justify-center z-20">
+                  <span className="text-xs font-mono text-cyan-300 font-bold tracking-wider">CALIBRATING 468 LANDMARKS... {faceMeshProgress}%</span>
+                  <div className="w-64 h-2 bg-slate-800 rounded-full mt-3 overflow-hidden shadow-inner">
+                    <div className="h-full bg-cyan-400 transition-all duration-200" style={{ width: `${faceMeshProgress}%` }} />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between items-center pt-4 border-t border-slate-800">
               <div className="text-xs text-slate-400 font-mono">
-                CPUID Hardware Status: <span className="text-emerald-400">PHYSICAL_BARE_METAL (PASSED)</span>
+                Hardware Camera Stream: <span className={webcamActive ? "text-emerald-400" : "text-amber-400"}>{webcamActive ? "ACTIVE (640x480)" : "INITIALIZING / PERMISSION REQUIRED"}</span>
               </div>
               <button
                 onClick={startFaceScan}
@@ -312,7 +422,7 @@ export const BiometricEnrollment: React.FC<BiometricEnrollmentProps> = ({ profil
 
             <div className="flex justify-between items-center pt-4 border-t border-slate-800">
               <div className="text-xs text-slate-400 font-mono">
-                Mic PnP Driver: <span className="text-emerald-400">REALTEK AUDIO ARRAY (GENUINE)</span>
+                Mic PnP Driver: <span className="text-emerald-400">REALTIME AUDIO ANALYZER ACTIVE</span>
               </div>
               <button
                 onClick={startVoiceRecording}

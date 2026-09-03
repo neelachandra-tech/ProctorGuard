@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { BiometricEnrollment } from './components/BiometricEnrollment';
 import { ExamineeConsole } from './components/ExamineeConsole';
@@ -54,8 +54,69 @@ export const App: React.FC = () => {
     setSecurityScore((prev) => Math.max(25, prev - 15));
   };
 
+  // Global Browser Lockdown Interceptors & Tab Switch Watchdog
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Intercept Alt+Tab, Win Key, PrintScreen, F12, Ctrl+C, Ctrl+V, Ctrl+U
+      if (
+        e.key === 'PrintScreen' ||
+        (e.altKey && e.key === 'Tab') ||
+        e.key === 'Meta' ||
+        e.key === 'F12' ||
+        (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'u' || e.key === 'i'))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const evt: ViolationEvent = {
+          id: `EVT-${Date.now()}`,
+          examineeId: profile.id,
+          examineeName: profile.name,
+          timestampMs: Date.now(),
+          formattedTime: new Date().toLocaleTimeString(),
+          type: 'KEYBOARD_ANOMALY',
+          severity: 'HIGH',
+          description: `Blocked forbidden shortcut attempt (${e.key}).`,
+          metrics: { keystrokeAnomalyScore: 0.95 },
+        };
+        handleViolationTriggered(evt);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        const evt: ViolationEvent = {
+          id: `EVT-${Date.now()}`,
+          examineeId: profile.id,
+          examineeName: profile.name,
+          timestampMs: Date.now(),
+          formattedTime: new Date().toLocaleTimeString(),
+          type: 'GAZE_STRAY',
+          severity: 'CRITICAL',
+          description: 'Candidate switched window/tab focus away from exam container.',
+          metrics: { gazeYaw: 45.0, gazePitch: -30.0 },
+        };
+        handleViolationTriggered(evt);
+      }
+    };
+
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('keydown', handleKeyDown, true);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('keydown', handleKeyDown, true);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [profile]);
+
   return (
-    <div className="min-h-screen bg-[#0a0d14] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#0a0d14] text-slate-100 flex flex-col font-sans select-none">
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} systemSecurityScore={securityScore} />
 
       <main className="flex-1 pb-12">
