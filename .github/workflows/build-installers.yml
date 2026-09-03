@@ -47,13 +47,13 @@ jobs:
         run: npm ci
 
       - name: Build Tauri Desktop App Installers
-        uses: tauri-apps/action-v2@v2
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: './apps/desktop-client'
-          tagName: ${{ github.ref_name }}
-          releaseName: 'ProctorGuard ${{ github.ref_name }}'
+          tagName: v2.4.0
+          releaseName: 'ProctorGuard v2.4.0'
           releaseBody: 'Automated release build of ProctorGuard Desktop Client Installers (.msi, .exe, .dmg, .AppImage)'
           releaseDraft: false
           prerelease: false
