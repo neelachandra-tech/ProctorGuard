@@ -2,6 +2,8 @@ name: Build ProctorGuard Installers
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -50,8 +52,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: './apps/desktop-client'
-          tagName: v__VERSION__
-          releaseName: 'ProctorGuard v__VERSION__'
+          tagName: ${{ github.ref_name }}
+          releaseName: 'ProctorGuard ${{ github.ref_name }}'
           releaseBody: 'Automated release build of ProctorGuard Desktop Client Installers (.msi, .exe, .dmg, .AppImage)'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
