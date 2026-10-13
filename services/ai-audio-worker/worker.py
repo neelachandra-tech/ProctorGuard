@@ -7,6 +7,9 @@ Kafka Topic: exam.audio -> Anomaly Output: fusion-engine API
 import time
 import json
 import math
+import sys
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import urllib.request
 
 class AudioProcessor:
     def __init__(self):
@@ -16,9 +19,6 @@ class AudioProcessor:
         self.speaker_similarity_threshold = 0.70
 
     def analyze_audio_chunk(self, examinee_id, chunk_id, audio_fft_spectrum, enrolled_pitch_freq):
-        """
-        audio_fft_spectrum: list of frequency amplitude bins (0 to 4000 Hz)
-        """
         if not audio_fft_spectrum:
             audio_fft_spectrum = [0.05] * 64
 
@@ -33,7 +33,6 @@ class AudioProcessor:
         is_whispering = speech_detected and (whisper_band_ratio > self.whisper_band_ratio_threshold) and (total_energy < 0.40)
 
         # 3. PyAnnote Speaker Diarization / Voiceprint Pitch Shift
-        # Estimate dominant pitch frequency from spectral peak index
         max_bin_idx = audio_fft_spectrum.index(max(audio_fft_spectrum))
         estimated_pitch = max_bin_idx * 50.0 # ~Hz approximation
         
@@ -43,19 +42,22 @@ class AudioProcessor:
         anomalies = []
         if is_whispering:
             anomalies.append({
+                "session_id": f"SESS-{examinee_id.replace('EX-', '')}",
+                "examinee_id": examinee_id,
                 "event_type": "AUDIO_WHISPER",
                 "weight": 0.55,
-                "whisper_ratio": round(whisper_band_ratio, 3),
-                "energy": round(total_energy, 3)
+                "description": f"Whisper pattern detected (band ratio: {round(whisper_band_ratio, 2)})",
+                "timestamp_ms": int(time.time() * 1000)
             })
 
         if second_speaker_detected:
             anomalies.append({
+                "session_id": f"SESS-{examinee_id.replace('EX-', '')}",
+                "examinee_id": examinee_id,
                 "event_type": "SECOND_SPEAKER",
                 "weight": 0.90,
-                "detected_pitch_hz": estimated_pitch,
-                "enrolled_pitch_hz": enrolled_pitch_freq,
-                "pitch_delta_hz": pitch_diff
+                "description": f"Secondary voiceprint detected (pitch delta: {round(pitch_diff, 1)} Hz)",
+                "timestamp_ms": int(time.time() * 1000)
             })
 
         return {
@@ -69,12 +71,80 @@ class AudioProcessor:
             "timestamp_ms": int(time.time() * 1000)
         }
 
+processor = AudioProcessor()
+
+def forward_anomaly_to_fusion(anomaly):
+    try:
+        url = "http://localhost:8081/api/v1/fusion/ingest"
+        data = json.dumps(anomaly).encode('utf-8')
+        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req, timeout=0.5) as resp:
+            pass
+    except Exception:
+        pass
+
+class AudioHTTPHandler(BaseHTTPRequestHandler):
+    def _send_cors(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self._send_cors()
+        self.end_headers()
+
+    def do_GET(self):
+        if self.path == '/healthz':
+            self.send_response(200)
+            self._send_cors()
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"status":"healthy","service":"ai-audio-worker"}')
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def do_POST(self):
+        if self.path == '/api/v1/audio/process':
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length)
+            try:
+                payload = json.loads(body.decode('utf-8'))
+                res = processor.analyze_audio_chunk(
+                    examinee_id=payload.get('examinee_id', 'EX-9042'),
+                    chunk_id=payload.get('chunk_id', 1),
+                    audio_fft_spectrum=payload.get('audio_fft_spectrum', []),
+                    enrolled_pitch_freq=payload.get('enrolled_pitch_freq', 140.0)
+                )
+                for a in res.get('anomalies', []):
+                    forward_anomaly_to_fusion(a)
+
+                self.send_response(200)
+                self._send_cors()
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(res).encode('utf-8'))
+            except Exception as e:
+                self.send_response(400)
+                self._send_cors()
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+
+def run_server(port=8083):
+    server = HTTPServer(('0.0.0.0', port), AudioHTTPHandler)
+    print(f"[AI Audio Worker] Listening on port {port}...")
+    server.serve_forever()
+
 if __name__ == "__main__":
-    processor = AudioProcessor()
-    sample = processor.analyze_audio_chunk(
-        examinee_id="EX-9042",
-        chunk_id=408,
-        audio_fft_spectrum=[0.02, 0.04, 0.35, 0.42, 0.38, 0.12, 0.05, 0.02] + [0.01]*56,
-        enrolled_pitch_freq=135.0
-    )
-    print(json.dumps(sample, indent=2))
+    if len(sys.argv) > 1 and sys.argv[1] == "--server":
+        port = int(sys.argv[2]) if len(sys.argv) > 2 else 8083
+        run_server(port)
+    else:
+        sample = processor.analyze_audio_chunk(
+            examinee_id="EX-9042",
+            chunk_id=408,
+            audio_fft_spectrum=[0.02, 0.04, 0.35, 0.42, 0.38, 0.12, 0.05, 0.02] + [0.01]*56,
+            enrolled_pitch_freq=135.0
+        )
+        print(json.dumps(sample, indent=2))

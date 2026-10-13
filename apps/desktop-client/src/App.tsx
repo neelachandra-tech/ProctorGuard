@@ -5,6 +5,7 @@ import { ExamineeConsole } from './components/ExamineeConsole';
 import { ExaminerPortal } from './components/ExaminerPortal';
 import { K8sTopology } from './components/K8sTopology';
 import { ExamineeProfile, ViolationEvent } from './types/proctor';
+import { verifySessionWithGateway, postTelemetryEvent } from './utils/api';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'K8S'>('EXAMINEE');
@@ -43,6 +44,24 @@ export const App: React.FC = () => {
 
   const [violations, setViolations] = useState<ViolationEvent[]>([]);
   const [securityScore, setSecurityScore] = useState<number>(98);
+  const [sessionToken, setSessionToken] = useState<string>('');
+
+  // Initial Session Verification with Backend Gateway
+  useEffect(() => {
+    verifySessionWithGateway({
+      sessionId: `SESS-${profile.id.replace('EX-', '')}`,
+      examineeId: profile.id,
+      examineeName: profile.name,
+      course: profile.course,
+      examId: profile.examId,
+      deviceToken: 'DEV-TOK-SECURE-9042',
+      isVm: profile.isVmDetected,
+    }).then((res) => {
+      if (res.sessionJwt) {
+        setSessionToken(res.sessionJwt);
+      }
+    });
+  }, [profile.id, profile.name, profile.course, profile.examId, profile.isVmDetected]);
 
   const handleEnrollmentComplete = (updated: ExamineeProfile) => {
     setProfile(updated);
@@ -52,6 +71,18 @@ export const App: React.FC = () => {
   const handleViolationTriggered = (evt: ViolationEvent) => {
     setViolations((prev) => [evt, ...prev]);
     setSecurityScore((prev) => Math.max(25, prev - 15));
+
+    // Post to API Gateway & Fusion Engine
+    postTelemetryEvent({
+      sessionId: `SESS-${profile.id.replace('EX-', '')}`,
+      examineeId: profile.id,
+      examineeName: profile.name,
+      eventType: evt.type,
+      severity: evt.severity,
+      description: evt.description,
+      metrics: evt.metrics as Record<string, unknown>,
+      timestampMs: evt.timestampMs,
+    });
   };
 
   // Global Browser Lockdown Interceptors & Tab Switch Watchdog

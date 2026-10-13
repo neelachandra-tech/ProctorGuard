@@ -74,18 +74,40 @@ graph TD
 # 1. Initialize ONNX model directory stubs
 npm run setup:models
 
-# 2. Build all frontend and microservice packages
+# 2. Build all frontend client & portal bundles
 npm run build
 
-# 3. Launch Desktop Lockdown Client
-npm run dev:desktop
+# 3. Run full test suite (Go microservices + Python AI workers)
+npm test
 
-# 4. Launch Standalone Examiner Web Portal
-npm run dev:examiner
+# 4. Launch Entire Platform (All 7 tiers with live health checks)
+npm run start:all
 
-# 5. Run Backend Unit Tests
-go test ./... --workspaces
+# Alternatively, launch individual layers:
+npm run dev:desktop   # Desktop Candidate Kiosk (http://localhost:5173)
+npm run dev:examiner  # Standalone Examiner Portal (http://localhost:5174)
 ```
+
+### 🔌 Microservice Ports & REST API Endpoints
+- **API Gateway (`:8080`)**:
+  - `POST /api/v1/session/verify` (Candidate session auth & hypervisor barrier)
+  - `GET  /api/v1/sessions` (Active candidate sessions list)
+  - `POST /api/v1/telemetry/event` (Kiosk lockdown event ingestion & relay)
+  - `POST /api/v1/telemetry/keystroke` (Flight/dwell keystroke dynamics check)
+- **Anomaly Fusion Engine (`:8081`)**:
+  - `POST /api/v1/fusion/ingest` (Ingest anomaly event & calculate exponential decay)
+  - `GET  /api/v1/fusion/states` (Real-time active candidate threat grid)
+  - `GET  /api/v1/fusion/state?session_id=...` (Single session risk status)
+  - `GET  /api/v1/fusion/evidence?session_id=...` (Cryptographic SHA-256 evidence bundle)
+  - `POST /api/v1/fusion/intervene` (Examiner actions: WARN, PAUSE, TERMINATE)
+  - `GET  /api/v1/fusion/stream` (Live Server-Sent Events stream for examiner portal)
+- **AI Vision Worker (`:8082`)**:
+  - `POST /api/v1/vision/process` (FaceNet re-auth & L2CS gaze pitch/yaw vector)
+- **AI Audio Worker (`:8083`)**:
+  - `POST /api/v1/audio/process` (Silero VAD whisper & secondary voiceprint detection)
+- **AI NLP Collusion Worker (`:8084`)**:
+  - `POST /api/v1/nlp/analyze` (DeBERTa cross-candidate text similarity matrix)
+
 
 ---
 
