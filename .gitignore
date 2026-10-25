@@ -1,8 +1,6 @@
 # Dependencies & Package Managers
 node_modules/
 .pnpm-store/
-package-lock.json
-yarn.lock
 
 # Build Outputs & Bundles
 dist/
