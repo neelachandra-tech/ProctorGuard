@@ -1,9 +1,9 @@
 import React from 'react';
-import { ShieldCheck, UserCheck, Monitor, Lock, Users, FileText, Cpu } from 'lucide-react';
+import { ShieldCheck, UserCheck, Monitor, Lock, Users, FileText, Cpu, Sparkles } from 'lucide-react';
 
 interface NavbarProps {
-  activeTab: 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'REPORT' | 'K8S';
-  setActiveTab: (tab: 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'REPORT' | 'K8S') => void;
+  activeTab: 'OVERVIEW' | 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'REPORT' | 'K8S';
+  setActiveTab: (tab: 'OVERVIEW' | 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'REPORT' | 'K8S') => void;
   systemSecurityScore: number;
   isNativeKiosk?: boolean;
 }
@@ -17,7 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-[#0d121d]/90 backdrop-blur-md border-b border-slate-800 px-6 py-3 flex flex-wrap items-center justify-between shadow-xl gap-4">
       {/* Brand Identity */}
-      <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('ENROLLMENT')}>
+      <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('OVERVIEW')}>
         <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-emerald-400 p-0.5 shadow-lg shadow-cyan-500/20">
           <div className="w-full h-full bg-[#0a0d14] rounded-[10px] flex items-center justify-center">
             <ShieldCheck className="w-5 h-5 text-cyan-400 animate-pulse" />
@@ -44,6 +44,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Full Multi-Layer Navigation */}
       <nav className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 flex-wrap">
+        <button
+          onClick={() => setActiveTab('OVERVIEW')}
+          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'OVERVIEW'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Overview</span>
+        </button>
+
         <button
           onClick={() => setActiveTab('ENROLLMENT')}
           className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${

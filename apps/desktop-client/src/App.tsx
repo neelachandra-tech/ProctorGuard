@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
+import { SecurityOverview } from './components/SecurityOverview';
 import { BiometricEnrollment } from './components/BiometricEnrollment';
 import { ExamineeConsole } from './components/ExamineeConsole';
 import { ExaminerPortal } from './components/ExaminerPortal';
@@ -15,7 +16,7 @@ import {
 } from './utils/tauriBridge';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'REPORT' | 'K8S'>('ENROLLMENT');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'REPORT' | 'K8S'>('OVERVIEW');
   const [isNativeKiosk, setIsNativeKiosk] = useState<boolean>(false);
 
   // Examinee Profile
@@ -186,6 +187,14 @@ export const App: React.FC = () => {
       />
 
       <main className="flex-1 pb-12">
+        {activeTab === 'OVERVIEW' && (
+          <SecurityOverview
+            onNavigate={setActiveTab}
+            isNativeKiosk={isNativeKiosk}
+            systemSecurityScore={securityScore}
+          />
+        )}
+
         {activeTab === 'ENROLLMENT' && (
           <BiometricEnrollment profile={profile} onEnrollmentComplete={handleEnrollmentComplete} />
         )}
@@ -195,6 +204,7 @@ export const App: React.FC = () => {
             profile={profile}
             onViolationTriggered={handleViolationTriggered}
             onViewReport={() => setActiveTab('REPORT')}
+            onNavigate={setActiveTab}
           />
         )}
 

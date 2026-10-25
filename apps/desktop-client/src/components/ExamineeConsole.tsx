@@ -13,6 +13,8 @@ import {
   FileText,
   Camera,
   Video,
+  ArrowLeft,
+  Users,
 } from 'lucide-react';
 import { ExamineeProfile, ExamQuestion, ThreatLevel, ViolationEvent } from '../types/proctor';
 import { computeGazeDirection, analyzeAudioSpectrum, evaluateKeystrokeDynamics } from '../utils/biometrics';
@@ -21,43 +23,45 @@ interface ExamineeConsoleProps {
   profile: ExamineeProfile;
   onViolationTriggered: (evt: ViolationEvent) => void;
   onViewReport?: () => void;
+  onNavigate?: (tab: 'OVERVIEW' | 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'REPORT' | 'K8S') => void;
 }
 
 export const ExamineeConsole: React.FC<ExamineeConsoleProps> = ({
   profile,
   onViolationTriggered,
   onViewReport,
+  onNavigate,
 }) => {
-  // Questions State
+  // Questions State - Biometric & Security Integrity Evaluation Prompts
   const [questions, setQuestions] = useState<ExamQuestion[]>([
     {
-      id: 'Q-01',
-      title: 'Distributed System Consensus & Fault Tolerance',
+      id: 'SEC-01',
+      title: 'Facial Liveness & 3D Gaze Attention Vector',
       type: 'MULTIPLE_CHOICE',
-      prompt: 'Which of the following properties is guaranteed by the Raft consensus algorithm during network partitions?',
+      prompt: 'Position yourself centered in front of the camera. The FaceNet neural network (512-D embedding) continuously re-authenticates your facial vectors, and the eye blink detector monitors natural blink rate (14-18/min). Which of the following events will immediately trigger an off-screen attention anomaly alert in the Proctor Matrix?',
       options: [
-        'A. Both partitions can continue electing leaders independently.',
-        'B. Only the partition containing a strict majority of nodes can elect a leader and commit logs.',
-        'C. Split-brain scenario occurs automatically to maintain write availability.',
-        'D. Writes are accepted without leader validation during partitions.'
+        'A. Maintaining continuous gaze within the active examination container.',
+        'B. Glancing off-screen (>15° yaw or pitch) towards secondary devices or notes for more than 2.5 seconds.',
+        'C. Normal eye blinking at an average rate of 16 blinks per minute.',
+        'D. Continuous typing within the exam interface with verified dwell times.'
       ],
-      userAnswer: 'B. Only the partition containing a strict majority of nodes can elect a leader and commit logs.'
+      userAnswer: 'B. Glancing off-screen (>15° yaw or pitch) towards secondary devices or notes for more than 2.5 seconds.'
     },
     {
-      id: 'Q-02',
-      title: 'Raft Consensus Protocol & Partition Tolerance',
+      id: 'SEC-02',
+      title: 'Keystroke Dynamics & Ghostwriter Impersonation Analysis',
       type: 'ESSAY',
-      prompt: 'Explain the leader election phase in the Raft consensus protocol. Highlight how randomized heartbeat timeouts prevent split votes and how terms maintain state ordering.',
-      userAnswer: 'In Raft, leader election relies on randomized heartbeat timers. If a follower receives no heartbeat within its randomized election timeout, it increments its term counter, transitions to the candidate state, votes for itself, and broadcasts RequestVote RPCs to all peers. When a majority of nodes grant their vote, the candidate becomes leader.',
-      wordCount: 54
+      prompt: 'Type your response into the field below. ProctorGuard actively samples key dwell time (milliseconds held down) and flight time (latency between successive keys) to verify typing rhythm against your enrolled baseline (dwell: ~108ms). Try typing naturally to observe genuine classification, or simulate rapid irregular bursts to trigger the imposter anomaly classifier.',
+      userAnswer: 'Keystroke dynamics analysis verifies candidate identity through statistical flight-time and dwell-time distributions. When an imposter or ghostwriter takes control of the keyboard, the divergence from the enrolled baseline triggers an anomaly alert in the Proctor matrix.',
+      wordCount: 38
     },
     {
-      id: 'Q-03',
-      title: 'BFT & Byzantine Vector Commitments',
+      id: 'SEC-03',
+      title: 'Acoustic Silero VAD & Collusion Shield',
       type: 'SHORT_ANSWER',
-      prompt: 'Define the maximum ratio of malicious Byzantine nodes ($f$) that a Practical Byzantine Fault Tolerant (PBFT) cluster of $N$ nodes can tolerate.',
-      userAnswer: 'A PBFT system requires N >= 3f + 1 total nodes, so it can tolerate up to f < N/3 Byzantine malicious failures.',
-      wordCount: 22
+      prompt: 'Speak softly, whisper, or simulate ambient background discussion. How does the Silero VAD and DeBERTa cross-similarity engine distinguish candidate self-reading from collaborative collusion?',
+      userAnswer: 'Silero VAD isolates vocal acoustic frequencies above 18dB, while DeBERTa computes cross-candidate text similarity to flag unauthorized collaboration.',
+      wordCount: 20
     }
   ]);
 
@@ -221,6 +225,43 @@ export const ExamineeConsole: React.FC<ExamineeConsoleProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 space-y-6">
+      {/* Navigation Breadcrumb Bar */}
+      {onNavigate && (
+        <div className="flex items-center justify-between bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-800">
+          <button
+            onClick={() => onNavigate('OVERVIEW')}
+            className="flex items-center space-x-1.5 text-xs font-mono font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>← Back to Platform Mission Overview</span>
+          </button>
+
+          <div className="flex items-center space-x-3 text-xs font-mono">
+            <span className="text-slate-400 hidden sm:inline">Quick Jump:</span>
+            <button
+              onClick={() => onNavigate('ENROLLMENT')}
+              className="text-slate-400 hover:text-white transition-colors"
+            >
+              1. Biometric Gate
+            </button>
+            <span className="text-slate-700">•</span>
+            <button
+              onClick={() => onNavigate('EXAMINER')}
+              className="text-slate-400 hover:text-white transition-colors"
+            >
+              3. Proctor Center (500+)
+            </button>
+            <span className="text-slate-700">•</span>
+            <button
+              onClick={() => onNavigate('REPORT')}
+              className="text-slate-400 hover:text-white transition-colors"
+            >
+              4. Grievance Audit
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 1. TOP LIVE SECURITY TELEMETRY HEADER */}
       <div className="glass-panel p-4 rounded-2xl border border-slate-800 shadow-2xl space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -236,7 +277,9 @@ export const ExamineeConsole: React.FC<ExamineeConsoleProps> = ({
                   {profile.id}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-mono">CS-401 Distributed Systems Exam</p>
+              <p className="text-xs text-cyan-400 font-mono font-semibold">
+                Live Proctoring Sandbox • Multimodal Security Sentinel Active
+              </p>
             </div>
           </div>
 
