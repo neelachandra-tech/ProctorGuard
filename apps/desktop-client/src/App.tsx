@@ -4,6 +4,7 @@ import { BiometricEnrollment } from './components/BiometricEnrollment';
 import { ExamineeConsole } from './components/ExamineeConsole';
 import { ExaminerPortal } from './components/ExaminerPortal';
 import { K8sTopology } from './components/K8sTopology';
+import { PostExamReport } from './components/PostExamReport';
 import { ExamineeProfile, ViolationEvent } from './types/proctor';
 import { verifySessionWithGateway, postTelemetryEvent } from './utils/api';
 import {
@@ -14,7 +15,7 @@ import {
 } from './utils/tauriBridge';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'K8S'>('EXAMINEE');
+  const [activeTab, setActiveTab] = useState<'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'REPORT' | 'K8S'>('ENROLLMENT');
   const [isNativeKiosk, setIsNativeKiosk] = useState<boolean>(false);
 
   // Examinee Profile
@@ -190,10 +191,23 @@ export const App: React.FC = () => {
         )}
 
         {activeTab === 'EXAMINEE' && (
-          <ExamineeConsole profile={profile} onViolationTriggered={handleViolationTriggered} />
+          <ExamineeConsole
+            profile={profile}
+            onViolationTriggered={handleViolationTriggered}
+            onViewReport={() => setActiveTab('REPORT')}
+          />
         )}
 
         {activeTab === 'EXAMINER' && <ExaminerPortal />}
+
+        {activeTab === 'REPORT' && (
+          <PostExamReport
+            profile={profile}
+            violations={violations}
+            integrityScore={securityScore}
+            onReturnToExam={() => setActiveTab('EXAMINEE')}
+          />
+        )}
 
         {activeTab === 'K8S' && <K8sTopology />}
       </main>

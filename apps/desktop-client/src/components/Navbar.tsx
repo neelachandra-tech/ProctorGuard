@@ -1,9 +1,9 @@
 import React from 'react';
-import { ShieldCheck, UserCheck, Monitor, Lock } from 'lucide-react';
+import { ShieldCheck, UserCheck, Monitor, Lock, Users, FileText, Cpu } from 'lucide-react';
 
 interface NavbarProps {
-  activeTab: 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'K8S';
-  setActiveTab: (tab: 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'K8S') => void;
+  activeTab: 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'REPORT' | 'K8S';
+  setActiveTab: (tab: 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'REPORT' | 'K8S') => void;
   systemSecurityScore: number;
   isNativeKiosk?: boolean;
 }
@@ -15,9 +15,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   isNativeKiosk = false,
 }) => {
   return (
-    <header className="sticky top-0 z-40 bg-[#0d121d]/90 backdrop-blur-md border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between shadow-xl">
+    <header className="sticky top-0 z-40 bg-[#0d121d]/90 backdrop-blur-md border-b border-slate-800 px-6 py-3 flex flex-wrap items-center justify-between shadow-xl gap-4">
       {/* Brand Identity */}
-      <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('EXAMINEE')}>
+      <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('ENROLLMENT')}>
         <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-emerald-400 p-0.5 shadow-lg shadow-cyan-500/20">
           <div className="w-full h-full bg-[#0a0d14] rounded-[10px] flex items-center justify-center">
             <ShieldCheck className="w-5 h-5 text-cyan-400 animate-pulse" />
@@ -33,39 +33,75 @@ export const Navbar: React.FC<NavbarProps> = ({
                 ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/50'
                 : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/50'
             }`}>
-              {isNativeKiosk ? 'WIN32 NATIVE KIOSK' : 'CANDIDATE KIOSK'}
+              {isNativeKiosk ? 'WIN32 NATIVE KIOSK' : 'WEB DEMO'}
             </span>
           </div>
           <p className="text-[11px] text-slate-400 font-mono">
-            {isNativeKiosk ? 'Kernel Hook WH_KEYBOARD_LL Active' : 'Biometric-Secured Lockdown Container'}
+            {isNativeKiosk ? 'Kernel Hook WH_KEYBOARD_LL Active' : 'Multi-Agent Biometric Proctoring Platform'}
           </p>
         </div>
       </div>
 
-      {/* Candidate Navigation Tabs Only */}
-      <nav className="flex items-center space-x-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+      {/* Full Multi-Layer Navigation */}
+      <nav className="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 flex-wrap">
         <button
           onClick={() => setActiveTab('ENROLLMENT')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
             activeTab === 'ENROLLMENT'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
           }`}
         >
-          <UserCheck className="w-4 h-4" />
-          <span>Biometric Enrollment</span>
+          <UserCheck className="w-3.5 h-3.5" />
+          <span>1. Biometric Gate</span>
         </button>
 
         <button
           onClick={() => setActiveTab('EXAMINEE')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
             activeTab === 'EXAMINEE'
               ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
           }`}
         >
-          <Monitor className="w-4 h-4" />
-          <span>Examinee Workspace</span>
+          <Monitor className="w-3.5 h-3.5" />
+          <span>2. Live Proctored Exam</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('EXAMINER')}
+          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'EXAMINER'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>3. Proctor Center (500+)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('REPORT')}
+          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'REPORT'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>4. Grievance Audit</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('K8S')}
+          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'K8S'
+              ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Cpu className="w-3.5 h-3.5" />
+          <span>5. Architecture</span>
         </button>
       </nav>
 
