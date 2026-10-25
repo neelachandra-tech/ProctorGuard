@@ -12,8 +12,8 @@ MODELS = {
     "facenet": {
         "dir": "models/facenet",
         "file": "facenet.onnx",
-        "url": "https://github.com/onnx/models/raw/main/validated/vision/body_analysis/facenet/model/facenet-12.onnx",
-        "description": "ONNX FaceNet Face Recognition & Headcount Tracking Model"
+        "url": "https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/ultraface/models/version-RFB-320.onnx",
+        "description": "UltraFace ONNX Multi-Headcount & Gaze Tracking Model"
     },
     "silero_vad": {
         "dir": "models/silero_vad",
@@ -24,8 +24,8 @@ MODELS = {
     "deberta": {
         "dir": "models/deberta",
         "file": "deberta_collusion.onnx",
-        "url": "https://huggingface.co/microsoft/deberta-v3-small/resolve/main/onnx/model.onnx",
-        "description": "DeBERTa-v3 NLP Similarity & Text Collusion Model"
+        "url": "https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/onnx/model_quantized.onnx",
+        "description": "Transformer NLP Cosine Similarity & Text Collusion Model"
     }
 }
 
