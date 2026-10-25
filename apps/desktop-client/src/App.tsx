@@ -6,9 +6,16 @@ import { ExaminerPortal } from './components/ExaminerPortal';
 import { K8sTopology } from './components/K8sTopology';
 import { ExamineeProfile, ViolationEvent } from './types/proctor';
 import { verifySessionWithGateway, postTelemetryEvent } from './utils/api';
+import {
+  fetchNativeSecurityState,
+  startNativeKeyboardLockdown,
+  stopNativeKeyboardLockdown,
+  isTauri,
+} from './utils/tauriBridge';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'K8S'>('EXAMINEE');
+  const [isNativeKiosk, setIsNativeKiosk] = useState<boolean>(false);
 
   // Examinee Profile
   const [profile, setProfile] = useState<ExamineeProfile>({
@@ -46,6 +53,28 @@ export const App: React.FC = () => {
   const [securityScore, setSecurityScore] = useState<number>(98);
   const [sessionToken, setSessionToken] = useState<string>('');
 
+  // Native Tauri v2 Kiosk Integration
+  useEffect(() => {
+    if (isTauri()) {
+      setIsNativeKiosk(true);
+      fetchNativeSecurityState().then((state) => {
+        if (state) {
+          setProfile((prev) => ({
+            ...prev,
+            isVmDetected: state.hypervisor.is_vm,
+            pnpAudited: !state.driver_audit.has_blacklisted_drivers,
+          }));
+        }
+      });
+
+      startNativeKeyboardLockdown();
+
+      return () => {
+        stopNativeKeyboardLockdown();
+      };
+    }
+  }, []);
+
   // Initial Session Verification with Backend Gateway
   useEffect(() => {
     verifySessionWithGateway({
@@ -54,14 +83,14 @@ export const App: React.FC = () => {
       examineeName: profile.name,
       course: profile.course,
       examId: profile.examId,
-      deviceToken: 'DEV-TOK-SECURE-9042',
+      deviceToken: isNativeKiosk ? 'DEV-TOK-TAURI-NATIVE-9042' : 'DEV-TOK-BROWSER-9042',
       isVm: profile.isVmDetected,
     }).then((res) => {
       if (res.sessionJwt) {
         setSessionToken(res.sessionJwt);
       }
     });
-  }, [profile.id, profile.name, profile.course, profile.examId, profile.isVmDetected]);
+  }, [profile.id, profile.name, profile.course, profile.examId, profile.isVmDetected, isNativeKiosk]);
 
   const handleEnrollmentComplete = (updated: ExamineeProfile) => {
     setProfile(updated);
@@ -148,7 +177,12 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0d14] text-slate-100 flex flex-col font-sans select-none">
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} systemSecurityScore={securityScore} />
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        systemSecurityScore={securityScore}
+        isNativeKiosk={isNativeKiosk}
+      />
 
       <main className="flex-1 pb-12">
         {activeTab === 'ENROLLMENT' && (

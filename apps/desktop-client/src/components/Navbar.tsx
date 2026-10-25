@@ -5,9 +5,15 @@ interface NavbarProps {
   activeTab: 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'K8S';
   setActiveTab: (tab: 'ENROLLMENT' | 'EXAMINEE' | 'EXAMINER' | 'K8S') => void;
   systemSecurityScore: number;
+  isNativeKiosk?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, systemSecurityScore }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  activeTab,
+  setActiveTab,
+  systemSecurityScore,
+  isNativeKiosk = false,
+}) => {
   return (
     <header className="sticky top-0 z-40 bg-[#0d121d]/90 backdrop-blur-md border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between shadow-xl">
       {/* Brand Identity */}
@@ -22,11 +28,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, systemS
             <span className="font-extrabold text-xl tracking-tight text-white font-sans">
               Proctor<span className="text-cyan-400">Guard</span>
             </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/50">
-              CANDIDATE KIOSK
+            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+              isNativeKiosk
+                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/50'
+                : 'bg-cyan-950/80 text-cyan-300 border-cyan-800/50'
+            }`}>
+              {isNativeKiosk ? 'WIN32 NATIVE KIOSK' : 'CANDIDATE KIOSK'}
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 font-mono">Biometric-Secured Lockdown Container</p>
+          <p className="text-[11px] text-slate-400 font-mono">
+            {isNativeKiosk ? 'Kernel Hook WH_KEYBOARD_LL Active' : 'Biometric-Secured Lockdown Container'}
+          </p>
         </div>
       </div>
 
@@ -59,9 +71,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, systemS
 
       {/* Security Status Badge & Hardware Attestation */}
       <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2 px-3 py-1.5 bg-cyan-950/40 border border-cyan-500/30 rounded-xl text-xs font-mono text-cyan-300">
+        <div className={`flex items-center space-x-2 px-3 py-1.5 border rounded-xl text-xs font-mono ${
+          isNativeKiosk
+            ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+            : 'bg-cyan-950/40 border-cyan-500/30 text-cyan-300'
+        }`}>
           <Lock className="w-3.5 h-3.5 text-cyan-400" />
-          <span>OS Lockdown Active</span>
+          <span>{isNativeKiosk ? 'Native Kernel Hook Active' : 'OS Lockdown Active'}</span>
         </div>
 
         <div className="flex items-center space-x-3 bg-slate-900/80 px-3.5 py-1.5 rounded-xl border border-slate-800">
